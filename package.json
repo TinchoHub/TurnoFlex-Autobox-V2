@@ -4,10 +4,10 @@
   "description": "AutoBox - Gestión de turnos y atención de clientes de un taller mecánico (Node.js, Express, MongoDB)",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "seed": "node scripts/seed.js",
-    "test": "node --test"
+    "start": "node --use-system-ca app.js",
+    "dev": "nodemon --use-system-ca app.js",
+    "seed": "node --use-system-ca scripts/seed.js",
+    "test": "node --use-system-ca --test"
   },
   "keywords": [],
   "author": "",
