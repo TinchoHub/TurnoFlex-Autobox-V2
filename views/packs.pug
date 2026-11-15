@@ -1,0 +1,107 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          path(d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z")
+          polyline(points="3.27 6.96 12 12.01 20.73 6.96")
+          line(x1="12" y1="22.08" x2="12" y2="12")
+      div
+        h2 Packs y créditos (Pack Flota 10)
+        p Los créditos sólo valen entre la fecha de inicio y el vencimiento, con el pack activo.
+
+  if exito === 'pack_creado'
+    .tf-notice.tf-notice--ok(style="margin-bottom: 18px;") Pack Flota registrado correctamente.
+  if exito === 'congelamiento_solicitado'
+    .tf-notice.tf-notice--ok(style="margin-bottom: 18px;") Solicitud de congelamiento enviada a Coordinación de Taller.
+
+  .tf-grid.tf-grid--2
+    div
+      h3(style="margin-bottom: 14px; color: var(--orange);") Packs contratados (#{packs.length})
+      if packs.length > 0
+        each p in packs
+          - const disp = Math.max(0, (p.creditosTotales || 10) - (p.creditosUsados || 0))
+          .detalle-card(style="max-width: 100%; margin-bottom: 16px;")
+            .tf-topbar
+              div
+                h3(style="margin-bottom: 6px;")= p.nombre
+                if p.clienteId
+                  p.tf-muted(style="margin-bottom: 6px;")
+                    strong #{p.clienteId.nombre} #{p.clienteId.apellido}
+                    if p.clienteId.empresa
+                      |  · #{p.clienteId.empresa}
+                +badgeEstado(p.estado)
+              div(style="text-align: right;")
+                span.stat-numero(style="font-size: 1.65rem; margin-bottom: 0;") #{disp} / #{p.creditosTotales}
+                small.tf-muted créditos disponibles
+
+            p(style="margin-top: 12px;")
+              | Vigencia #{formatDate(p.fechaInicio)} → #{formatDate(p.fechaFin)} · Pagado #{formatMoney(p.montoPagado)}
+
+            if p.estado === 'activo'
+              hr(style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 14px 0;")
+              form(method="POST" action=`/packs/${p._id}/congelar` style="width: 100%; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none;")
+                .tf-grid.tf-grid--2
+                  .campo(style="margin-bottom: 10px;")
+                    label Días de congelamiento (1 a 30)
+                    input(type="number" name="dias" min="1" max="30" value="7" required)
+                  .campo(style="margin-bottom: 10px;")
+                    label Motivo
+                    input(type="text" name="motivo" value="Parada operativa de la flota" required)
+                button.btn.btn--secondary(type="submit") Solicitar congelamiento
+      else
+        .empty-state
+          h3 No hay packs contratados
+          p Asigná un nuevo Pack Flota 10 desde el formulario lateral.
+
+    div
+      .detalle-card(style="max-width: 100%; margin-bottom: 18px;")
+        h3 Contratar / Asignar Pack Flota 10
+        form(method="POST" action="/packs" style="width: 100%; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none;")
+          .campo
+            label(for="clienteId") Cliente / Flota
+            select#clienteId(name="clienteId" required)
+              option(value="" disabled selected) Seleccione un cliente
+              each c in clientes
+                option(value=c._id) #{c.nombre} #{c.apellido}#{c.empresa ? ` · ${c.empresa}` : ''}
+
+          .campo
+            label(for="nombre") Nombre del Pack
+            input#nombre(type="text" name="nombre" value="Pack Flota 10" required)
+
+          .tf-grid.tf-grid--2
+            .campo
+              label(for="creditosTotales") Créditos totales
+              input#creditosTotales(type="number" name="creditosTotales" min="1" max="50" value="10" required)
+            .campo
+              label(for="montoPagado") Monto abonado (ARS)
+              input#montoPagado(type="number" name="montoPagado" min="0" value="520000" required)
+
+          .tf-grid.tf-grid--2
+            .campo
+              label(for="fechaInicio") Fecha de inicio
+              input#fechaInicio(type="date" name="fechaInicio" value="2026-09-01" required)
+            .campo
+              label(for="fechaFin") Fecha de vencimiento
+              input#fechaFin(type="date" name="fechaFin" value="2026-11-30" required)
+
+          button.boton(type="submit") Registrar Pack
+
+      .detalle-card(style="max-width: 100%;")
+        h3 Solicitudes de congelamiento
+        if congelamientos && congelamientos.length > 0
+          each f in congelamientos
+            div(style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08);")
+              p(style="margin-bottom: 4px;")
+                strong= f.packId ? f.packId.nombre : 'Pack'
+                |  · #{f.dias} días · 
+                +badgeEstado(f.estado)
+              p.tf-muted(style="margin-bottom: 0; font-size: 0.86rem;")
+                | #{f.solicitadoPor}: "#{f.motivo}"
+                if f.nuevaFechaFin
+                  |  → Nuevo fin: #{f.nuevaFechaFin}
+        else
+          p.tf-muted Sin solicitudes registradas.

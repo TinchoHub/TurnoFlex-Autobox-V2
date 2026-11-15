@@ -1,0 +1,116 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      div
+        h2 Reservar nuevo turno
+        p Cinco pasos con motor de disponibilidad real (profesional + box con elevador) y opción de Pack Flota 10.
+
+  .tf-steps
+    span.tf-step.is-active 1. Cliente y Vehículo
+    span.tf-step 2. Servicio
+    span.tf-step 3. Sucursal
+    span.tf-step 4. Fecha y Horario
+    span.tf-step 5. Pago y Confirmación
+
+  form#formNuevoTurno(action="/turnos" method="POST" style="width: min(820px, 100%);")
+
+    .tf-grid.tf-grid--2
+      .campo
+        label(for="clienteId") 1. Cliente
+        select#clienteId(name="clienteId" required)
+          option(value="" disabled selected) Seleccione un cliente
+          each cliente in clientes
+            option(
+              value=cliente._id
+              data-tipo=cliente.tipo || 'particular'
+            ) #{cliente.nombre} #{cliente.apellido}#{cliente.empresa ? ` · ${cliente.empresa}` : ''}
+
+      .campo
+        label(for="vehiculoId") Vehículo del cliente
+        select#vehiculoId(name="vehiculoId" required disabled)
+          option(value="" selected) Primero seleccione un cliente
+          each vehiculo in vehiculos
+            option(
+              value=vehiculo._id
+              data-cliente-id=vehiculo.clienteId.toString()
+            ) #{vehiculo.patente} - #{vehiculo.marca} #{vehiculo.modelo} (#{vehiculo.anio || 2020})
+
+    .tf-grid.tf-grid--2
+      .campo
+        label(for="servicioSelect") 2. Servicio del catálogo AutoBox
+        select#servicioSelect(name="servicioId")
+          each srv in serviciosCatalogo
+            option(
+              value=srv.id
+              data-nombre=srv.name
+              data-duracion=srv.durationMin
+              data-precio=srv.price
+              data-senia=srv.deposit
+              data-elevador=srv.requiresLift ? '1' : '0'
+              data-pack=srv.packEligible ? '1' : '0'
+            ) #{srv.name} (#{srv.durationMin} min · #{formatMoney(srv.price)} · seña #{formatMoney(srv.deposit)}#{srv.packEligible ? ' · apto pack' : ''})
+        input#servicio(type="hidden" name="servicio" value=serviciosCatalogo[0].name)
+
+      .campo
+        label(for="sucursalId") 3. Sucursal AMBA
+        select#sucursalId(name="sucursalId" required)
+          each suc in sucursalesCatalogo
+            option(value=suc.id) #{suc.name} — #{suc.address}
+
+    .tf-grid.tf-grid--2
+      .campo
+        label(for="fecha") 4. Fecha del turno
+        input#fecha(
+          type="date"
+          name="fecha"
+          value="2026-09-12"
+          required
+        )
+
+      .campo
+        label(for="hora") Horario disponible (mecánico + box libres)
+        input#hora(
+          type="time"
+          name="hora"
+          value="09:00"
+          required
+        )
+        input#mecanicoId(type="hidden" name="mecanicoId" value="m1")
+        input#boxId(type="hidden" name="boxId" value="b1")
+
+    .campo
+      label Seleccioná un slot calculado por el motor de disponibilidad:
+      #slotsContainer.tf-slots-grid
+        p.tf-muted Elegí sucursal, servicio y fecha para ver los horarios con mecánico y box libres.
+
+    .tf-grid.tf-grid--2(style="margin-top: 12px;")
+      .campo
+        label(for="tipoPago") 5. Modalidad de pago
+        select#tipoPago(name="tipoPago")
+          option(value="individual" selected) Servicio individual (abona seña al reservar)
+          option(value="pack") Usar 1 crédito de Pack Flota 10
+
+      .campo#campoPackSelect
+        label(for="packId") Pack activo del cliente
+        select#packId(name="packId")
+          option(value="") Sin pack / Pago individual
+          each p in packs
+            - const disp = Math.max(0, (p.creditosTotales || 10) - (p.creditosUsados || 0))
+            option(
+              value=p._id
+              data-cliente-id=p.clienteId.toString()
+              data-inicio=p.fechaInicio
+              data-fin=p.fechaFin
+              data-disp=disp
+            ) #{p.nombre} · #{disp}/#{p.creditosTotales} créditos · vence #{p.fechaFin}
+
+    .tf-notice(style="margin-bottom: 20px;")
+      strong Política de reserva y cancelación 24 h:
+      |  Un horario sólo se asigna si hay profesional y box compatible libres. Si cancelás con menos de 24 horas de anticipación, se retiene la seña o se consume 1 crédito del pack.
+
+    button.boton(type="submit") Confirmar y registrar turno
+
+  a.volver(href="/turnos") Volver a turnos

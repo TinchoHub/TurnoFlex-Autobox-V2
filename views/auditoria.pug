@@ -1,0 +1,49 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          path(d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z")
+      div
+        h2 Auditoría y alertas
+        p Trazabilidad inmutable de acciones y avisos automáticos de turnos (24 h / 2 h) y vencimiento de packs (7 d / 2 d).
+
+    .tf-row-actions
+      form.tf-inline-form(method="POST" action="/auditoria/alertas")
+        button.btn.btn--secondary(type="submit") Emitir alertas pendientes
+      form.tf-inline-form(method="POST" action="/auditoria/reset-demo" onsubmit="return confirm('¿Restaurar la semilla de demostración de TurnoFlex · AutoBox? Se recargarán los clientes, vehículos, packs y turnos del caso de estudio.')")
+        button.boton(type="submit") Restaurar datos demo (Seed)
+
+  if exito === 'alertas_generadas'
+    .tf-notice.tf-notice--ok(style="margin-bottom: 18px;") Se verificaron los turnos y packs vigentes y se registraron las alertas correspondientes.
+  if exito === 'demo_restaurada'
+    .tf-notice.tf-notice--ok(style="margin-bottom: 18px;") Semilla de demostración TurnoFlex · AutoBox restaurada con éxito.
+
+  .tf-grid.tf-grid--2
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Registro de acciones (#{auditoria.length})
+      if auditoria.length > 0
+        each e in auditoria
+          div(style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08);")
+            p(style="margin-bottom: 4px;")
+              span.tf-badge.tf-badge--info(style="margin-right: 8px;")= e.accion
+              strong= e.detalle
+            p.tf-muted(style="margin-bottom: 0; font-size: 0.82rem;")
+              | #{formatDateTime(e.fecha || e.createdAt)} · Actor: #{e.actor}
+      else
+        p.tf-muted Todavía no hay eventos registrados. Podés restaurar la semilla demo con el botón superior.
+
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Alertas (24 h / 2 h / packs) (#{alertas.length})
+      if alertas.length > 0
+        each a in alertas
+          div(style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08);")
+            .tf-topbar(style="margin-bottom: 4px;")
+              strong #{a.tipo} · #{a.canal.toUpperCase()} → #{a.destinatario}
+              +badgeEstado(a.resultado)
+            p.tf-muted(style="margin-bottom: 0; font-size: 0.88rem;")= a.mensaje
+      else
+        p.tf-muted No hay alertas emitidas aún.

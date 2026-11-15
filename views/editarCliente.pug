@@ -1,0 +1,73 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      div
+        h2 Modificar cliente
+        p Actualizá los datos del cliente registrado en AutoBox.
+
+  if cliente
+
+    section.detalle-card
+      form(method="POST" action="/clientes/" + cliente._id + "/editar")
+
+        .campo
+          label(for="nombre") Nombre
+          input#nombre(
+            type="text"
+            name="nombre"
+            value=cliente.nombre
+            required
+          )
+
+        .campo
+          label(for="apellido") Apellido
+          input#apellido(
+            type="text"
+            name="apellido"
+            value=cliente.apellido
+            required
+          )
+
+        .campo
+          label(for="tipo") Tipo de cliente
+          select#tipo(name="tipo")
+            option(value="particular" selected=cliente.tipo !== 'flota') Particular
+            option(value="flota" selected=cliente.tipo === 'flota') Flota corporativa
+
+        .campo
+          label(for="empresa") Empresa
+          input#empresa(
+            type="text"
+            name="empresa"
+            value=cliente.empresa || ''
+            placeholder="Ej: Distribuidora ABC"
+          )
+
+        .campo
+          label(for="telefono") Teléfono
+          input#telefono(
+            type="text"
+            name="telefono"
+            value=cliente.telefono
+            required
+          )
+
+        .campo
+          label(for="email") Email
+          input#email(
+            type="email"
+            name="email"
+            value=cliente.email
+            required
+          )
+
+        .acciones-detalle
+          button.boton(type="submit") Guardar cambios
+          a.volver(href="/clientes/" + cliente._id) Cancelar
+
+  else
+    p Cliente no encontrado.
+    a.volver(href="/clientes") Volver a clientes

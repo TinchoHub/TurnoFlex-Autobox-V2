@@ -1,0 +1,113 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          rect(x="3" y="5" width="18" height="16" rx="2")
+          path(d="M16 3v4M8 3v4M3 10h18")
+          path(d="M8 14h2M12 14h2M16 14h2M8 17h2M12 17h2")
+
+      div
+        h2 Turnos
+        p Gestión de turnos, sucursales, boxes y política de cancelación de 24 h
+
+    .tf-row-actions
+      if mostrarTodos
+        a.btn.btn--secondary(href="/turnos") Ver solo activos
+      else
+        a.btn.btn--secondary(href="/turnos?todos=1") Incluir cancelados
+      a.boton(href="/turnos/nuevo") + Nuevo turno
+
+  .module-toolbar
+
+    .search-box
+      svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+        circle(cx="11" cy="11" r="7")
+        path(d="M20 20l-4-4")
+
+      input(
+        type="search"
+        data-table-search="tablaTurnos"
+        placeholder="Buscar por código, cliente, patente, sucursal o servicio..."
+        autocomplete="off"
+      )
+
+    .module-count
+      span= turnos.length
+      |  turnos listados
+
+  .table-card
+
+    if turnos.length > 0
+
+      table#tablaTurnos
+        thead
+          tr
+            th Código
+            th Cliente
+            th Vehículo
+            th Sucursal / Box
+            th Fecha y Hora
+            th Servicio / Mecánico
+            th Pago
+            th Estado
+            th Acciones
+
+        tbody
+          each turno in turnos
+            - const suc = obtenerSucursal(turno.sucursalId)
+            - const mec = obtenerMecanico(turno.mecanicoId)
+            - const box = obtenerBox(turno.boxId)
+            tr
+              td
+                span.id-badge= turno.codigo || turno._id.toString().slice(-6)
+
+              td
+                if turno.clienteId
+                  strong #{turno.clienteId.nombre} #{turno.clienteId.apellido}
+                  if turno.clienteId.empresa
+                    div.tf-muted(style="font-size: 0.8rem;")= turno.clienteId.empresa
+                else
+                  | Cliente no disponible
+
+              td
+                if turno.vehiculoId
+                  strong= turno.vehiculoId.patente
+                  div.tf-muted(style="font-size: 0.8rem;") #{turno.vehiculoId.marca} #{turno.vehiculoId.modelo}
+                else
+                  | Vehículo no disponible
+
+              td
+                strong= suc.name.replace('AutoBox ', '')
+                div.tf-muted(style="font-size: 0.8rem;")= box.name
+
+              td
+                strong= turno.fecha
+                div.tf-muted(style="font-size: 0.82rem;") #{turno.hora} hs
+
+              td
+                strong= turno.servicio
+                div.tf-muted(style="font-size: 0.8rem;")= mec.name
+
+              td
+                if turno.tipoPago === 'pack'
+                  span.tf-badge.tf-badge--warn Pack
+                else
+                  span.tf-badge.tf-badge--info Individual
+                  if turno.montoPagado
+                    div.tf-muted(style="font-size: 0.78rem;")= formatMoney(turno.montoPagado)
+
+              td
+                +badgeEstado(turno.estado || (turno.activo ? 'confirmado' : 'cancelado'))
+
+              td
+                a.action-link(href="/turnos/" + turno._id) Ver detalle →
+
+    else
+
+      .empty-state
+        h3 No hay turnos registrados
+        p Los nuevos turnos aparecerán en esta sección.

@@ -1,0 +1,89 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          path(d="M9 11l3 3L22 4")
+          path(d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11")
+      div
+        h2 Recepción · #{sucursalSeleccionada === 'todas' ? 'Todas las sucursales' : obtenerSucursal(sucursalSeleccionada).name}
+        p Check-in, no-show y consulta de pagos. Las excepciones las autoriza el jefe de taller.
+
+    form.tf-filters-bar(method="GET" action="/recepcion")
+      select(name="sucursal" onchange="this.form.submit()")
+        option(value="todas" selected=(sucursalSeleccionada === 'todas')) Todas las sucursales
+        each suc in sucursalesCatalogo
+          option(value=suc.id selected=(sucursalSeleccionada === suc.id))= suc.name
+
+  .module-toolbar
+    .search-box
+      svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+        circle(cx="11" cy="11" r="7")
+        path(d="M20 20l-4-4")
+      input(
+        type="search"
+        data-table-search="tablaRecepcion"
+        placeholder="Buscar por código, cliente o patente..."
+        autocomplete="off"
+      )
+    .module-count
+      span= turnos.length
+      |  turnos en agenda
+
+  .table-card
+    if turnos.length > 0
+      table#tablaRecepcion
+        thead
+          tr
+            th Turno
+            th Cliente / Vehículo
+            th Sucursal / Box
+            th Servicio
+            th Pago
+            th Estado
+            th Acciones
+        tbody
+          each a in turnos
+            - const suc = obtenerSucursal(a.sucursalId)
+            - const box = obtenerBox(a.boxId)
+            tr
+              td
+                span.id-badge= a.codigo || a._id.toString().slice(-6)
+                div.tf-muted(style="font-size: 0.82rem; margin-top: 4px;") #{a.fecha} · #{a.hora} hs
+              td
+                if a.clienteId
+                  strong #{a.clienteId.nombre} #{a.clienteId.apellido}
+                else
+                  strong Cliente
+                div.tf-muted(style="font-size: 0.82rem;")= a.vehiculoId ? `${a.vehiculoId.patente} · ${a.vehiculoId.marca} ${a.vehiculoId.modelo}` : '---'
+              td
+                strong= suc.name.replace('AutoBox ', '')
+                div.tf-muted(style="font-size: 0.8rem;")= box.name
+              td= a.servicio
+              td
+                strong= a.tipoPago === 'pack' ? 'Pack' : 'Individual'
+                |  · cobrado #{formatMoney(a.montoPagado || 0)}
+                if a.seniaPerdida
+                  div(style="color: #f87171; font-size: 0.8rem;") seña perdida #{formatMoney(a.seniaPerdida)}
+              td
+                +badgeEstado(a.estado)
+              td
+                .tf-row-actions
+                  if a.estado === 'confirmado' || a.estado === 'pendiente'
+                    form.tf-inline-form(method="POST" action=`/turnos/${a._id}/estado`)
+                      input(type="hidden" name="estado" value="en_atencion")
+                      input(type="hidden" name="redirectTo" value=`/recepcion?sucursal=${sucursalSeleccionada}`)
+                      button.boton(type="submit" style="padding: 8px 12px; font-size: 0.82rem;") Check-in
+                    form.tf-inline-form(method="POST" action=`/turnos/${a._id}/estado`)
+                      input(type="hidden" name="estado" value="no_show")
+                      input(type="hidden" name="redirectTo" value=`/recepcion?sucursal=${sucursalSeleccionada}`)
+                      button.btn.btn--secondary(type="submit" style="padding: 8px 12px; font-size: 0.82rem;") No-show
+                  else
+                    a.action-link(href=`/turnos/${a._id}`) Detalle →
+    else
+      .empty-state
+        h3 No hay turnos para la sucursal seleccionada
+        p Los turnos agendados aparecerán en esta vista.

@@ -1,0 +1,94 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      div
+        h2 Modificar turno · #{turno ? (turno.codigo || turno._id.toString().slice(-6)) : ''}
+        p Actualizá los datos, recursos asignados o estado del turno.
+
+  if turno
+
+    section.detalle-card(style="max-width: 760px;")
+      form(method="POST" action=`/turnos/${turno._id}/editar` style="width: 100%; margin: 0; padding: 0; border: 0; box-shadow: none; background: transparent;")
+
+        .tf-grid.tf-grid--2
+          .campo
+            label(for="clienteId") Cliente
+            select#clienteId(name="clienteId" required)
+              each cliente in clientes
+                option(
+                  value=cliente._id
+                  selected=(turno.clienteId && turno.clienteId.toString() === cliente._id.toString())
+                ) #{cliente.nombre} #{cliente.apellido}
+
+          .campo
+            label(for="vehiculoId") Vehículo
+            select#vehiculoIdEdit(name="vehiculoId" required)
+              each vehiculo in vehiculos
+                option(
+                  value=vehiculo._id
+                  selected=(turno.vehiculoId && turno.vehiculoId.toString() === vehiculo._id.toString())
+                ) #{vehiculo.patente} - #{vehiculo.marca} #{vehiculo.modelo}
+
+        .tf-grid.tf-grid--2
+          .campo
+            label(for="servicio") Servicio
+            input#servicio(
+              type="text"
+              name="servicio"
+              value=turno.servicio
+              required
+            )
+
+          .campo
+            label(for="sucursalId") Sucursal
+            select#sucursalId(name="sucursalId")
+              each suc in sucursalesCatalogo
+                option(value=suc.id selected=(turno.sucursalId === suc.id))= suc.name
+
+        .tf-grid.tf-grid--2
+          .campo
+            label(for="mecanicoId") Mecánico
+            select#mecanicoId(name="mecanicoId")
+              each mec in mecanicosCatalogo
+                option(value=mec.id selected=(turno.mecanicoId === mec.id)) #{mec.name} (#{obtenerSucursal(mec.branchId).name.replace('AutoBox ', '')})
+
+          .campo
+            label(for="boxId") Box / Bahía
+            select#boxId(name="boxId")
+              each bx in boxesCatalogo
+                option(value=bx.id selected=(turno.boxId === bx.id)) #{bx.name} (#{obtenerSucursal(bx.branchId).name.replace('AutoBox ', '')})
+
+        .tf-grid.tf-grid--2
+          .campo
+            label(for="fecha") Fecha
+            input#fecha(
+              type="date"
+              name="fecha"
+              value=turno.fecha
+              required
+            )
+
+          .campo
+            label(for="hora") Hora
+            input#hora(
+              type="time"
+              name="hora"
+              value=turno.hora
+              required
+            )
+
+        .campo
+          label(for="estado") Estado del turno
+          select#estado(name="estado")
+            each est in ['pendiente', 'confirmado', 'en_atencion', 'completado', 'no_show']
+              option(value=est selected=(turno.estado === est))= appointmentLabel(est)
+
+        .acciones-detalle
+          button.boton(type="submit") Guardar cambios
+          a.volver(href=`/turnos/${turno._id}`) Cancelar
+
+  else
+    p Turno no encontrado.

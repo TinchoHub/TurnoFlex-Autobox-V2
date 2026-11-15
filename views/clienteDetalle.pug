@@ -1,0 +1,109 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      div
+        h2 Panel del cliente · #{cliente ? `${cliente.nombre} ${cliente.apellido}` : ''}
+        p Próximos turnos, vehículos registrados y créditos de pack en un solo lugar.
+    if cliente
+      a.boton(href="/turnos/nuevo?clienteId=" + cliente._id) + Reservar turno
+
+  if cliente
+
+    - const turnosProximos = (turnos || []).filter(t => ['pendiente', 'confirmado', 'en_atencion'].includes(t.estado))
+    - const creditosDisponibles = (packs || []).filter(p => p.estado === 'activo').reduce((acc, p) => acc + Math.max(0, (p.creditosTotales || 10) - (p.creditosUsados || 0)), 0)
+
+    section.estadisticas
+      article.stat-card
+        span.stat-numero= turnosProximos.length
+        p Próximos turnos
+      article.stat-card
+        span.stat-numero= (vehiculos || []).length
+        p Vehículos asociados
+      article.stat-card
+        span.stat-numero= creditosDisponibles
+        p Créditos de pack disponibles
+
+    .tf-grid.tf-grid--2
+      section.detalle-card(style="max-width: 100%; margin-top: 0;")
+        h3 Datos del cliente
+        p
+          strong ID:
+          |  #{cliente._id}
+        p
+          strong Tipo:
+          |  #{cliente.tipo === 'flota' ? 'Flota corporativa' : 'Particular'}
+        if cliente.empresa
+          p
+            strong Empresa:
+            |  #{cliente.empresa}
+        p
+          strong Teléfono:
+          |  #{cliente.telefono}
+        p
+          strong Email:
+          |  #{cliente.email}
+
+        .acciones-detalle
+          a.boton(href="/clientes/" + cliente._id + "/editar") Modificar cliente
+          button.boton-eliminar(
+            type="button"
+            onclick=`eliminarCliente('${cliente._id}')`
+          ) Eliminar cliente
+          a.volver(href="/clientes") Volver a clientes
+
+      section.detalle-card(style="max-width: 100%; margin-top: 0;")
+        h3 Vehículos y Packs
+        h4(style="margin-bottom: 8px; color: #f8fafc;") Vehículos (#{(vehiculos || []).length})
+        if vehiculos && vehiculos.length > 0
+          each v in vehiculos
+            p
+              strong= v.patente
+              |  · #{v.marca} #{v.modelo} #{v.anio || ''} 
+              a.action-link(href="/vehiculos/" + v._id style="margin-left: 8px;") Ver →
+        else
+          p.tf-muted Sin vehículos registrados.
+
+        hr(style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 16px 0;")
+
+        h4(style="margin-bottom: 8px; color: #f8fafc;") Packs contratados (#{(packs || []).length})
+        if packs && packs.length > 0
+          each p in packs
+            p
+              strong= p.nombre
+              |  · #{Math.max(0, p.creditosTotales - p.creditosUsados)}/#{p.creditosTotales} créditos · vence #{p.fechaFin} 
+              +badgeEstado(p.estado)
+        else
+          p.tf-muted No tiene packs contratados. Puede reservar servicios individuales o contratar un Pack Flota 10.
+
+    if turnos && turnos.length > 0
+      .table-card(style="margin-top: 24px;")
+        table
+          thead
+            tr
+              th Código
+              th Fecha y Hora
+              th Vehículo
+              th Servicio
+              th Sucursal
+              th Estado
+              th Acciones
+          tbody
+            each t in turnos
+              tr
+                td
+                  span.id-badge= t.codigo || t._id.toString().slice(-6)
+                td #{t.fecha} #{t.hora}
+                td= t.vehiculoId ? `${t.vehiculoId.patente} (${t.vehiculoId.marca})` : '---'
+                td= t.servicio
+                td= obtenerSucursal(t.sucursalId).name
+                td
+                  +badgeEstado(t.estado)
+                td
+                  a.action-link(href="/turnos/" + t._id) Ver detalle →
+
+  else
+
+    p Cliente no encontrado.

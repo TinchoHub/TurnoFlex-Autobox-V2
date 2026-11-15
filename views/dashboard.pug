@@ -1,0 +1,124 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          line(x1="18" y1="20" x2="18" y2="10")
+          line(x1="12" y1="20" x2="12" y2="4")
+          line(x1="6" y1="20" x2="6" y2="14")
+      div
+        h2 Dashboard de gestión
+        p Feedback del sistema: no-show, uso de packs y recaudación. Sin duplicar ingresos al usar créditos.
+
+  form.tf-filters-bar(method="GET" action="/dashboard" style="margin-bottom: 22px;")
+    label.tf-filter-item
+      span Desde
+      input(type="date" name="desde" value=dashboard.filtros.desde)
+    label.tf-filter-item
+      span Hasta
+      input(type="date" name="hasta" value=dashboard.filtros.hasta)
+    label.tf-filter-item
+      span Sucursal
+      select(name="sucursalId")
+        option(value="todas" selected=(dashboard.filtros.sucursalId === 'todas')) Todas
+        each suc in sucursalesCatalogo
+          option(value=suc.id selected=(dashboard.filtros.sucursalId === suc.id))= suc.name
+    label.tf-filter-item
+      span Servicio
+      select(name="servicioId")
+        option(value="todos" selected=(dashboard.filtros.servicioId === 'todos')) Todos
+        each srv in serviciosCatalogo
+          option(value=srv.id selected=(dashboard.filtros.servicioId === srv.id))= srv.name
+    label.tf-filter-item
+      span Profesional
+      select(name="mecanicoId")
+        option(value="todos" selected=(dashboard.filtros.mecanicoId === 'todos')) Todos
+        each mec in mecanicosCatalogo
+          option(value=mec.id selected=(dashboard.filtros.mecanicoId === mec.id))= mec.name
+    button.boton(type="submit") Aplicar filtros
+
+  section.estadisticas
+    article.stat-card
+      p Tasa de no-show
+      span.stat-numero #{dashboard.noshowRate.toFixed(1)}%
+      p(style=`color: ${dashboard.noshowRate <= dashboard.prevRate ? '#3dcf8e' : '#ef6b6b'}; font-size: 0.85rem; margin-top: 6px;`)
+        | #{dashboard.noshowCount} casos · período anterior #{dashboard.prevRate.toFixed(1)}%
+
+    article.stat-card
+      p Uso de packs
+      span.stat-numero #{dashboard.packPct}%
+      p(style="font-size: 0.85rem; margin-top: 6px;")
+        | #{dashboard.packUse.active} activos · #{dashboard.packUse.soon} por vencer · #{dashboard.packUse.frozen} congelados
+
+    if canSeeMoney
+      article.stat-card
+        p Recaudación del período
+        span.stat-numero= formatMoney(dashboard.revenue.total)
+        p(style="font-size: 0.85rem; margin-top: 6px;")
+          | Anterior #{formatMoney(dashboard.prevRevenue.total)}
+
+  .tf-grid.tf-grid--2
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Evolución de no-show (%)
+      .tf-chart
+        each item in dashboard.noshowSeries
+          .tf-chart-col
+            .tf-bar(
+              style=`height: ${Math.max(12, Math.min(100, item.v * 4))}%;`
+              title=`${item.m}: ${item.v.toFixed(1)}%`
+            )
+            span.tf-chart-label #{item.m} (#{item.v.toFixed(0)}%)
+      p.tf-muted(style="margin-top: 10px;") Proporción de inasistencias sobre turnos cerrados por mes.
+
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Recaudación operativa por sucursal
+      .tf-chart
+        each item in dashboard.byBranch
+          .tf-chart-col
+            .tf-bar.tf-bar--alt(
+              style=`height: ${Math.max(12, Math.round((item.value / dashboard.maxRev) * 100))}%;`
+              title=`${item.fullName}: ${formatMoney(item.value)}`
+            )
+            span.tf-chart-label #{item.name} (#{formatMoney(item.value)})
+      p.tf-muted(style="margin-top: 10px;")= dashboard.byBranch.map(x => x.name).join(' · ')
+
+  .tf-grid.tf-grid--2(style="margin-top: 18px;")
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Estado de Packs Flota 10
+      p
+        strong Créditos usados:
+        |  #{dashboard.packUse.used} / contratados #{dashboard.packUse.total}
+      p
+        strong Disponibles:
+        |  #{dashboard.packUse.available} · Vencidos sin usar: #{dashboard.packUse.expiredCredits}
+      hr(style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 0;")
+      if packs && packs.length > 0
+        each p in packs
+          p(style="display: flex; justify-content: space-between; align-items: center;")
+            span
+              strong= p.nombre
+              |  · #{p.clienteId ? (p.clienteId.empresa || `${p.clienteId.nombre} ${p.clienteId.apellido}`) : 'Cliente'} · #{p.creditosUsados}/#{p.creditosTotales}
+            +badgeEstado(p.estado)
+      else
+        p.tf-muted No hay packs activos registrados.
+
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Servicios más reservados
+      if dashboard.topServices.length > 0
+        each s in dashboard.topServices
+          p(style="display: flex; justify-content: space-between;")
+            span= s.name
+            strong #{s.count} turnos
+      else
+        p.tf-muted Sin turnos en el rango filtrado.
+
+      if canSeeMoney
+        hr(style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 14px 0;")
+        p.tf-muted(style="margin-bottom: 0;")
+          strong Desglose cobrado:
+          |  Individuales #{formatMoney(dashboard.revenue.individual)} · Venta de packs #{formatMoney(dashboard.revenue.packs)} · Penalizaciones (señas retenidas) #{formatMoney(dashboard.revenue.penalties)}
+
+  p.tf-muted(style="margin-top: 14px;") Turnos incluidos en el filtro actual: #{dashboard.filteredCount}

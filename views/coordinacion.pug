@@ -1,0 +1,62 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          circle(cx="12" cy="12" r="3")
+          path(d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z")
+      div
+        h2 Coordinación de taller
+        p Disponibilidad, congelamientos y excepciones. Las reglas no se improvisan por WhatsApp.
+
+  if exito
+    .tf-notice.tf-notice--ok(style="margin-bottom: 18px;") Resolución registrada con trazabilidad en auditoría.
+
+  .tf-grid.tf-grid--2
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Congelamientos de pack (#{congelamientos.length})
+      if congelamientos.length > 0
+        each f in congelamientos
+          div(style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.08);")
+            .tf-topbar(style="margin-bottom: 6px;")
+              strong
+                | #{f.packId ? f.packId.nombre : 'Pack Flota 10'} · #{f.dias} días
+              +badgeEstado(f.estado)
+            p.tf-muted(style="margin-bottom: 8px; font-size: 0.9rem;")
+              | Solicitado por #{f.solicitadoPor}: "#{f.motivo}"
+              if f.nuevaFechaFin
+                br
+                | Nuevo vencimiento: #{f.nuevaFechaFin}
+            if f.estado === 'pendiente'
+              .tf-row-actions
+                form.tf-inline-form(method="POST" action=`/coordinacion/congelamientos/${f._id}`)
+                  input(type="hidden" name="accion" value="aprobar")
+                  button.boton(type="submit" style="padding: 8px 14px; font-size: 0.84rem;") Aprobar
+                form.tf-inline-form(method="POST" action=`/coordinacion/congelamientos/${f._id}`)
+                  input(type="hidden" name="accion" value="rechazar")
+                  button.btn.btn--secondary(type="submit" style="padding: 8px 14px; font-size: 0.84rem;") Rechazar
+      else
+        p.tf-muted No hay solicitudes de congelamiento registradas.
+
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Excepciones operativas (#{excepciones.length})
+      if excepciones.length > 0
+        each e in excepciones
+          div(style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.08);")
+            .tf-topbar(style="margin-bottom: 6px;")
+              strong #{e.solicitadoPor} · #{obtenerSucursal(e.sucursalId).name}
+              +badgeEstado(e.estado)
+            p.tf-muted(style="margin-bottom: 8px; font-size: 0.9rem;")= e.motivo
+            if e.estado === 'pendiente'
+              .tf-row-actions
+                form.tf-inline-form(method="POST" action=`/coordinacion/excepciones/${e._id}`)
+                  input(type="hidden" name="accion" value="aprobar")
+                  button.boton(type="submit" style="padding: 8px 14px; font-size: 0.84rem;") Autorizar y registrar
+                form.tf-inline-form(method="POST" action=`/coordinacion/excepciones/${e._id}`)
+                  input(type="hidden" name="accion" value="rechazar")
+                  button.btn.btn--secondary(type="submit" style="padding: 8px 14px; font-size: 0.84rem;") Rechazar
+      else
+        p.tf-muted No hay solicitudes de excepción registradas.

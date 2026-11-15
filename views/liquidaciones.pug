@@ -1,0 +1,54 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          line(x1="12" y1="1" x2="12" y2="23")
+          path(d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6")
+      div
+        h2 Liquidación quincenal de mecánicos
+        p Período #{formatDate(desde)} – #{formatDate(hasta)} · sólo servicios completados (comisión 35%). Cancelados y no-show no liquidan.
+
+    form.tf-filters-bar(method="GET" action="/liquidaciones")
+      label.tf-filter-item
+        span Desde
+        input(type="date" name="desde" value=desde)
+      label.tf-filter-item
+        span Hasta
+        input(type="date" name="hasta" value=hasta)
+      button.boton(type="submit") Filtrar
+
+  section.estadisticas
+    article.stat-card
+      span.stat-numero= formatMoney(totalGeneral)
+      p Total comisiones del período
+    article.stat-card
+      span.stat-numero= liquidaciones.reduce((acc, l) => acc + l.lines.length, 0)
+      p Servicios completados liquidables
+    article.stat-card
+      span.stat-numero= liquidaciones.length
+      p Profesionales en nómina
+
+  .tf-grid.tf-grid--2
+    each item in liquidaciones
+      .detalle-card(style="max-width: 100%; margin-top: 0;")
+        .tf-topbar
+          div
+            h3(style="margin-bottom: 4px;")= item.mechanic.name
+            span.tf-muted #{item.branch.name} · Comisión #{Math.round(item.mechanic.commission * 100)}%
+          strong(style="font-size: 1.45rem; color: var(--orange);")= formatMoney(item.total)
+
+        hr(style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 14px 0;")
+
+        if item.lines.length === 0
+          p.tf-muted Sin servicios completados en el período seleccionado.
+        else
+          each l in item.lines
+            p(style="display: flex; justify-content: space-between; margin-bottom: 8px;")
+              span
+                strong= l.appointment.codigo || l.appointment._id.toString().slice(-6)
+                |  · #{l.service.name} (#{l.appointment.fecha})
+              strong= formatMoney(l.amount)

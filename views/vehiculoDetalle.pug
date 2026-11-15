@@ -1,0 +1,75 @@
+extends layout
+
+block contenido
+
+  h2 Detalle del vehículo
+
+  if vehiculo
+
+    section.detalle-card
+      h3 #{vehiculo.marca} #{vehiculo.modelo}
+
+      p
+        strong ID:
+        |  #{vehiculo._id}
+
+      p
+        strong Patente:
+        |  #{vehiculo.patente}
+
+      p
+        strong Marca:
+        |  #{vehiculo.marca}
+
+      p
+        strong Modelo:
+        |  #{vehiculo.modelo}
+
+      p
+        strong Año:
+        |  #{vehiculo.anio || 'No especificado'}
+
+      p
+        strong Propietario:
+        if vehiculo.clienteId
+          |  #{vehiculo.clienteId.nombre} #{vehiculo.clienteId.apellido}
+        else
+          |  Cliente no disponible
+
+      .acciones-detalle
+        a.boton(href="/vehiculos/" + vehiculo._id + "/editar") Modificar vehículo
+
+        button.boton-eliminar(
+          type="button"
+          onclick=`eliminarVehiculo('${vehiculo._id}')`
+        ) Eliminar vehículo
+
+        a.volver(href="/vehiculos") Volver a vehículos
+
+    if turnosVehiculo && turnosVehiculo.length > 0
+      .table-card(style="margin-top: 24px;")
+        table
+          thead
+            tr
+              th Código
+              th Fecha y Hora
+              th Servicio
+              th Sucursal
+              th Estado
+              th Acciones
+          tbody
+            each t in turnosVehiculo
+              tr
+                td
+                  span.id-badge= t.codigo || t._id.toString().slice(-6)
+                td #{t.fecha} #{t.hora}
+                td= t.servicio
+                td= obtenerSucursal(t.sucursalId).name
+                td
+                  +badgeEstado(t.estado)
+                td
+                  a.action-link(href="/turnos/" + t._id) Ver detalle →
+
+  else
+
+    p Vehículo no encontrado.

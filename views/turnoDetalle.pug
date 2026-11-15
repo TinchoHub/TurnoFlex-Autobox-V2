@@ -1,0 +1,100 @@
+extends layout
+
+block contenido
+
+  h2 Detalle del turno
+
+  if turno
+    - const suc = obtenerSucursal(turno.sucursalId)
+    - const mec = obtenerMecanico(turno.mecanicoId)
+    - const box = obtenerBox(turno.boxId)
+    - const srv = obtenerServicio(turno.servicioId || turno.servicio)
+    - const tardia = isLateCancel(turno)
+
+    section.detalle-card(style="max-width: 760px;")
+      .tf-topbar
+        div
+          h3 #{turno.codigo ? `${turno.codigo} · ` : ''}#{turno.servicio}
+          +badgeEstado(turno.estado || (turno.activo ? 'confirmado' : 'cancelado'))
+        span.id-badge= turno._id.toString().slice(-6)
+
+      .tf-grid.tf-grid--2(style="margin-top: 16px;")
+        div
+          p
+            strong ID MongoDB:
+            |  #{turno._id}
+          p
+            strong Cliente:
+            if turno.clienteId
+              |  #{turno.clienteId.nombre} #{turno.clienteId.apellido}
+              if turno.clienteId.empresa
+                |  (#{turno.clienteId.empresa})
+            else
+              |  Cliente no disponible
+          p
+            strong Vehículo:
+            if turno.vehiculoId
+              |  #{turno.vehiculoId.marca} #{turno.vehiculoId.modelo} (#{turno.vehiculoId.anio || 2020})
+            else
+              |  Vehículo no disponible
+          p
+            strong Patente:
+            if turno.vehiculoId
+              |  #{turno.vehiculoId.patente}
+            else
+              |  No disponible
+          p
+            strong Fecha y Hora:
+            |  #{turno.fecha} a las #{turno.hora} hs (#{turno.duracionMin || 60} min)
+
+        div
+          p
+            strong Sucursal:
+            |  #{suc.name} (#{suc.address})
+          p
+            strong Mecánico asignado:
+            |  #{mec.name}
+          p
+            strong Box asignado:
+            |  #{box.name}
+          p
+            strong Modalidad de pago:
+            |  #{turno.tipoPago === 'pack' ? 'Crédito de Pack Flota' : 'Servicio individual'}
+          p
+            strong Monto cobrado / Seña:
+            |  #{formatMoney(turno.montoPagado || 0)}
+            if turno.seniaPerdida
+              |  · Seña retenida: #{formatMoney(turno.seniaPerdida)}
+
+      if turno.activo && ['pendiente', 'confirmado', 'en_atencion'].includes(turno.estado)
+        hr(style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 18px 0;")
+        p.tf-muted(style="margin-bottom: 10px;") Acciones operativas de Recepción y Taller:
+        .tf-row-actions
+          if turno.estado === 'confirmado' || turno.estado === 'pendiente'
+            form.tf-inline-form(method="POST" action=`/turnos/${turno._id}/estado`)
+              input(type="hidden" name="estado" value="en_atencion")
+              input(type="hidden" name="redirectTo" value=`/turnos/${turno._id}`)
+              button.boton(type="submit") Check-in / Iniciar atención
+            form.tf-inline-form(method="POST" action=`/turnos/${turno._id}/estado`)
+              input(type="hidden" name="estado" value="no_show")
+              input(type="hidden" name="redirectTo" value=`/turnos/${turno._id}`)
+              button.btn.btn--secondary(type="submit") Marcar No-show
+          if turno.estado === 'en_atencion'
+            form.tf-inline-form(method="POST" action=`/turnos/${turno._id}/estado`)
+              input(type="hidden" name="estado" value="completado")
+              input(type="hidden" name="redirectTo" value=`/turnos/${turno._id}`)
+              button.boton(type="submit") Completar servicio
+
+      .acciones-detalle
+        if turno.activo
+          a.boton(href=`/turnos/${turno._id}/editar`) Modificar turno
+          button.boton-eliminar(
+            type="button"
+            onclick=`cancelarTurno('${turno._id}', ${tardia ? 'true' : 'false'}, '${turno.tipoPago || 'individual'}', ${srv ? srv.deposit : 8000})`
+          ) Cancelar turno
+
+        a.volver(href="/turnos") Volver a turnos
+
+  else
+
+    p Turno no encontrado.

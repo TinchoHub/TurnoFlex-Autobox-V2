@@ -1,0 +1,68 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      div
+        h2 Modificar vehículo
+        p Actualizá los datos del vehículo registrado en AutoBox.
+
+  if vehiculo
+
+    section.detalle-card
+      form(method="POST" action="/vehiculos/" + vehiculo._id + "/editar")
+
+        .campo
+          label(for="patente") Patente
+          input#patente(
+            type="text"
+            name="patente"
+            value=vehiculo.patente
+            required
+          )
+
+        .campo
+          label(for="marca") Marca
+          input#marca(
+            type="text"
+            name="marca"
+            value=vehiculo.marca
+            required
+          )
+
+        .campo
+          label(for="modelo") Modelo
+          input#modelo(
+            type="text"
+            name="modelo"
+            value=vehiculo.modelo
+            required
+          )
+
+        .campo
+          label(for="anio") Año
+          input#anio(
+            type="number"
+            name="anio"
+            min="1950"
+            max="2100"
+            value=vehiculo.anio || 2020
+          )
+
+        .campo
+          label(for="clienteId") Cliente propietario
+          select#clienteId(name="clienteId" required)
+            each cliente in clientes
+              option(
+                value=cliente._id
+                selected=(vehiculo.clienteId && vehiculo.clienteId._id.toString() === cliente._id.toString())
+              ) #{cliente.nombre} #{cliente.apellido}
+
+        .acciones-detalle
+          button.boton(type="submit") Guardar cambios
+          a.volver(href="/vehiculos/" + vehiculo._id) Cancelar
+
+  else
+    p Vehículo no encontrado.
+    a.volver(href="/vehiculos") Volver a vehículos

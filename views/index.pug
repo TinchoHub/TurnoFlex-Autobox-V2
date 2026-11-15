@@ -1,0 +1,77 @@
+extends layout
+
+block contenido
+
+  section.hero
+
+    .hero__overlay
+
+      p.hero__pre Bienvenido a
+
+      h1
+        span AUTO
+        strong BOX
+
+      p Tres sucursales en el AMBA. Gestioná clientes, vehículos, turnos con disponibilidad real de mecánicos y boxes, packs para flotas y tablero gerencial.
+
+  section.acciones
+
+    if !permisos || permisos.clientes
+      a.accion-card(href="/clientes/nuevo")
+        .accion-card__icono 👤
+        div
+          h3 Nuevo cliente
+          p Registrar particular o flota
+
+    if !permisos || permisos.vehiculos
+      a.accion-card(href="/vehiculos/nuevo")
+        .accion-card__icono 🚗
+        div
+          h3 Nuevo vehículo
+          p Asociar patente y año
+
+    if !permisos || permisos.turnos
+      a.accion-card(href="/turnos/nuevo")
+        .accion-card__icono 📅
+        div
+          h3 Nuevo turno
+          p Reserva en 5 pasos (mecánico + box)
+
+    if !permisos || permisos.packs
+      a.accion-card(href="/packs")
+        .accion-card__icono 📦
+        div
+          h3 Pack Flota 10
+          p Créditos, vigencia y congelamientos
+
+    if !permisos || permisos.recepcion
+      a.accion-card(href="/recepcion")
+        .accion-card__icono ✅
+        div
+          h3 Recepción
+          p Check-in, no-show y atención
+
+    if !permisos || permisos.dashboard
+      a.accion-card(href="/dashboard")
+        .accion-card__icono 📊
+        div
+          h3= usuario && usuario.rol === 'recepcion' ? 'Indicadores' : 'Dashboard y Gestión'
+          p Indicadores, packs y rendimiento
+
+  section.estadisticas
+
+    article.stat-card
+      span.stat-numero= totalClientes
+      p Clientes registrados
+
+    article.stat-card
+      span.stat-numero= totalVehiculos
+      p Vehículos registrados
+
+    article.stat-card
+      span.stat-numero= totalTurnos
+      p Turnos activos
+
+    article.stat-card
+      span.stat-numero= totalPacks || 0
+      p Packs Flota activos

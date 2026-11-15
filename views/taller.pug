@@ -1,0 +1,83 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          path(d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z")
+      div
+        h2 Trabajos asignados en Taller
+        p Informá inicio y cierre de cada orden. Si necesitás una excepción, queda registrada: no se fuerza el sobreturno.
+
+    form.tf-filters-bar(method="GET" action="/taller")
+      select(name="mecanico" onchange="this.form.submit()")
+        option(value="todos" selected=(mecanicoSeleccionado === 'todos')) Todos los mecánicos
+        each mec in mecanicosCatalogo
+          option(value=mec.id selected=(mecanicoSeleccionado === mec.id)) #{mec.name} (#{obtenerSucursal(mec.branchId).name.replace('AutoBox ', '')})
+
+  if exito === 'excepcion_enviada'
+    .tf-notice.tf-notice--ok(style="margin-bottom: 18px;") Pedido de excepción enviado a Coordinación de Taller.
+
+  .tf-grid.tf-grid--2
+    .detalle-card(style="max-width: 100%; margin-top: 0;")
+      h3 Órdenes de trabajo (#{trabajos.length})
+      if trabajos.length > 0
+        each a in trabajos
+          - const mec = obtenerMecanico(a.mecanicoId)
+          - const box = obtenerBox(a.boxId)
+          div(style="padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08);")
+            .tf-topbar(style="margin-bottom: 6px;")
+              strong #{a.codigo || a._id.toString().slice(-6)} · #{a.servicio}
+              +badgeEstado(a.estado)
+            p.tf-muted(style="margin-bottom: 8px; font-size: 0.88rem;")
+              | #{a.fecha} #{a.hora} hs · #{a.vehiculoId ? `${a.vehiculoId.patente} (${a.vehiculoId.marca} ${a.vehiculoId.modelo})` : 'Vehículo'} · #{mec.name} · #{box.name}
+            .tf-row-actions
+              if a.estado === 'confirmado' || a.estado === 'pendiente'
+                form.tf-inline-form(method="POST" action=`/turnos/${a._id}/estado`)
+                  input(type="hidden" name="estado" value="en_atencion")
+                  input(type="hidden" name="redirectTo" value=`/taller?mecanico=${mecanicoSeleccionado}`)
+                  button.boton(type="submit" style="padding: 8px 14px; font-size: 0.84rem;") Iniciar
+              if a.estado === 'en_atencion'
+                form.tf-inline-form(method="POST" action=`/turnos/${a._id}/estado`)
+                  input(type="hidden" name="estado" value="completado")
+                  input(type="hidden" name="redirectTo" value=`/taller?mecanico=${mecanicoSeleccionado}`)
+                  button.boton(type="submit" style="padding: 8px 14px; font-size: 0.84rem;") Completar
+              a.action-link(href=`/turnos/${a._id}` style="font-size: 0.84rem; align-self: center;") Ver ficha →
+      else
+        p.tf-muted No hay órdenes asignadas para el filtro seleccionado.
+
+    div
+      .detalle-card(style="max-width: 100%; margin-top: 0; margin-bottom: 18px;")
+        h3 Pedir excepción (sin saltar el motor de disponibilidad)
+        p.tf-muted Las solicitudes de sobreturno o cambio fuera de regla son evaluadas por el coordinador de taller.
+        form(method="POST" action="/taller/excepcion" style="width: 100%; margin: 14px 0 0; padding: 0; border: 0; background: transparent; box-shadow: none;")
+          .tf-grid.tf-grid--2
+            .campo
+              label(for="solicitadoPor") Profesional solicitante
+              select#solicitadoPor(name="solicitadoPor")
+                each mec in mecanicosCatalogo
+                  option(value=mec.name)= mec.name
+            .campo
+              label(for="sucursalId") Sucursal
+              select#sucursalId(name="sucursalId")
+                each suc in sucursalesCatalogo
+                  option(value=suc.id)= suc.name
+          .campo
+            label(for="motivo") Motivo de la excepción
+            textarea#motivo(name="motivo" rows="3" required) Cliente habitual pide sobreturno. Hay elevador ocupado a las 17.
+          button.btn.btn--secondary(type="submit") Enviar a coordinación
+
+      .detalle-card(style="max-width: 100%; margin-top: 0;")
+        h3 Últimos pedidos de excepción
+        if excepciones && excepciones.length > 0
+          each e in excepciones
+            div(style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08);")
+              p(style="margin-bottom: 4px;")
+                strong= e.solicitadoPor
+                |  (#{obtenerSucursal(e.sucursalId).name.replace('AutoBox ', '')}) · 
+                +badgeEstado(e.estado)
+              p.tf-muted(style="margin-bottom: 0; font-size: 0.86rem;")= e.motivo
+        else
+          p.tf-muted Sin pedidos de excepción registrados.
