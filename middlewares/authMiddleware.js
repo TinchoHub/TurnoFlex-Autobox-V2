@@ -31,6 +31,7 @@ export const obtenerPermisosPorRol = (rol) => {
     dashboard: es("admin", "recepcion", "coordinador", "gerencia"),
     auditoria: es("admin", "coordinador", "gerencia"),
     usuarios: es("admin"),
+    ayuda: true,
     verRecaudacion: es("admin", "coordinador", "gerencia")
   };
 };

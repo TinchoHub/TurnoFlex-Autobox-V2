@@ -71,4 +71,8 @@ router.get('/asistente', protegerRuta, (req, res) => {
     });
 });
 
+// Centro de Ayuda y Preguntas Frecuentes (accesible para todos los roles autenticados)
+router.get('/ayuda', protegerRuta, vistasController.renderAyuda);
+router.get('/ayuda/manual', protegerRuta, vistasController.descargarManualWord);
+
 export default router;

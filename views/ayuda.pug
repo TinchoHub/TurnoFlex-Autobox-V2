@@ -1,0 +1,183 @@
+extends layout
+
+block contenido
+  section.page-header
+    div
+      span.page-kicker Documentación & Soporte Operativo
+      h1 Centro de Ayuda y Preguntas Frecuentes
+      p Consultá las reglas de negocio, flujos por módulo y respuestas rápidas sobre el uso de TurnoFlex · AutoBox.
+
+    .actions(style="margin-top:0;")
+      a.btn.btn--primary(href="/ayuda/manual")
+        | Descargar Manual en Word (.docx)
+
+  //- Tarjeta personalizada según el rol del usuario autenticado
+  .tf-card(style="margin-bottom: 22px; border-left: 4px solid #ff6b18;")
+    .tf-card__header
+      div
+        span.tf-badge.tf-badge--warn Tu perfil activo
+        h3(style="margin-top: 8px;")= guiaRol.titulo
+      if usuario && usuario.sucursalId
+        - const sucUsuario = obtenerSucursal(usuario.sucursalId)
+        span.tf-badge.tf-badge--info= sucUsuario ? sucUsuario.name : usuario.sucursalId
+    p(style="color: var(--gray-light); margin-bottom: 14px;")= guiaRol.descripcion
+    if guiaRol.acciones && guiaRol.acciones.length
+      .actions(style="margin-top: 0;")
+        each acc in guiaRol.acciones
+          a.btn.btn--secondary.btn--small(href=acc.url)= acc.texto
+
+  //- Buscador y filtros por categoría
+  .tf-card(style="margin-bottom: 22px;")
+    .tf-faq-toolbar
+      .tf-faq-search
+        input#faqSearchInput(
+          type="search"
+          placeholder="Buscar por palabra clave (ej. cancelación 24h, pack 80%, elevador, check-in, comisión...)"
+          autocomplete="off"
+        )
+      .tf-faq-actions
+        button.btn.btn--secondary.btn--small#btnExpandirFaqs(type="button") Expandir todas
+
+    .tf-faq-pills#faqCategoryPills
+      button.tf-faq-pill.is-active(type="button" data-cat="todas") Todas (#{faqs.length})
+      button.tf-faq-pill(type="button" data-cat="turnos") Turnos y Agenda
+      button.tf-faq-pill(type="button" data-cat="packs") Packs Flota 10
+      button.tf-faq-pill(type="button" data-cat="operacion") Recepción y Taller
+      button.tf-faq-pill(type="button" data-cat="gestion") Coordinación y Gestión
+      button.tf-faq-pill(type="button" data-cat="acceso") Roles y Accesos
+      button.tf-faq-pill(type="button" data-cat="ia") Asesor IA
+
+  //- Listado de Preguntas Frecuentes en acordeón
+  .tf-faq-list#faqListContainer
+    each item, idx in faqs
+      details.tf-faq-item(data-cat=item.categoria open=(idx < 2))
+        summary.tf-faq-summary
+          .tf-faq-summary__title
+            span.tf-badge.tf-badge--info.tf-faq-cat= item.categoriaLabel
+            strong.tf-faq-question= item.pregunta
+          span.tf-faq-chevron ▾
+        .tf-faq-body
+          p= item.respuesta
+
+  p#faqEmptyState.tf-notice.tf-notice--warn(style="display:none;")
+    | No se encontraron preguntas frecuentes que coincidan con tu búsqueda. Probá con otro término o seleccioná la categoría "Todas".
+
+  //- Resumen rápido de Reglas de Negocio y Catálogo de Servicios
+  .tf-grid.tf-grid--2(style="margin-top: 26px;")
+    .tf-card
+      .tf-card__header
+        div
+          h3 Reglas de Negocio Automatizadas
+          p Validaciones que el motor de TurnoFlex · AutoBox aplica en tiempo real
+      ul.tf-rules-list
+        li
+          strong No solapamiento de recursos:
+          |  Un mecánico y un box sólo pueden atender 1 vehículo por franja horaria.
+        li
+          strong Requisito de elevador hidráulico:
+          |  Los servicios pesados sólo habilitan boxes equipados con elevador.
+        li
+          strong Especialidad técnica por sucursal:
+          |  Sólo se asignan mecánicos de la sucursal elegida que posean la especialidad del servicio.
+        li
+          strong Ventana de cancelación de 24 horas:
+          |  Cancelar con menos de 24 h (o No-show) retiene la seña o consume el crédito del Pack Flota 10.
+        li
+          strong Límite del 80% en Packs Flota 10:
+          |  Sólo se puede solicitar congelamiento si el pack tiene menos de 8 créditos consumidos (< 80%).
+        li
+          strong Comisión técnica del 35%:
+          |  Cada turno en estado "Completado" liquida automáticamente el 35% del valor del servicio al mecánico.
+
+    .tf-card
+      .tf-card__header
+        div
+          h3 Catálogo Oficial de Servicios
+          p Duración, requerimiento de elevador, aranceles y elegibilidad para Pack Flota 10
+      .table-container(style="margin-top: 8px;")
+        table
+          thead
+            tr
+              th Servicio
+              th Duración
+              th Elevador
+              th Precio / Seña
+              th Pack 10
+          tbody
+            each srv in serviciosCatalogo
+              tr
+                td
+                  strong= srv.name
+                td #{srv.durationMin} min
+                td= srv.requiresLift ? 'Sí' : 'No'
+                td
+                  | #{formatMoney(srv.price)}
+                  br
+                  small(style="color: var(--gray);") Seña: #{formatMoney(srv.deposit)}
+                td
+                  if srv.packEligible
+                    span.tf-badge.tf-badge--ok Apto
+                  else
+                    span.tf-badge.tf-badge--danger No
+
+  script.
+    (function () {
+      const searchInput = document.getElementById('faqSearchInput');
+      const pillsContainer = document.getElementById('faqCategoryPills');
+      const faqItems = Array.from(document.querySelectorAll('.tf-faq-item'));
+      const emptyState = document.getElementById('faqEmptyState');
+      const btnExpandir = document.getElementById('btnExpandirFaqs');
+      let activeCat = 'todas';
+      let allExpanded = false;
+
+      function filtrarFaqs() {
+        const query = (searchInput.value || '').trim().toLowerCase();
+        let visibles = 0;
+
+        faqItems.forEach((item) => {
+          const cat = item.getAttribute('data-cat');
+          const texto = item.textContent.toLowerCase();
+          const coincideCat = activeCat === 'todas' || cat === activeCat;
+          const coincideTexto = !query || texto.includes(query);
+
+          if (coincideCat && coincideTexto) {
+            item.style.display = '';
+            if (query) item.open = true;
+            visibles++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        if (emptyState) {
+          emptyState.style.display = visibles === 0 ? 'block' : 'none';
+        }
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', filtrarFaqs);
+      }
+
+      if (pillsContainer) {
+        pillsContainer.addEventListener('click', (e) => {
+          const pill = e.target.closest('.tf-faq-pill');
+          if (!pill) return;
+          pillsContainer.querySelectorAll('.tf-faq-pill').forEach((p) => p.classList.remove('is-active'));
+          pill.classList.add('is-active');
+          activeCat = pill.getAttribute('data-cat') || 'todas';
+          filtrarFaqs();
+        });
+      }
+
+      if (btnExpandir) {
+        btnExpandir.addEventListener('click', () => {
+          allExpanded = !allExpanded;
+          faqItems.forEach((item) => {
+            if (item.style.display !== 'none') {
+              item.open = allExpanded;
+            }
+          });
+          btnExpandir.textContent = allExpanded ? 'Contraer todas' : 'Expandir todas';
+        });
+      }
+    })();
